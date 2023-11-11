@@ -1,0 +1,496 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>SuperTac</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+    />
+
+    <style>
+      :root {
+        --box-size: 3.5rem;
+        --box-bg-rgb: 35, 35, 35;
+        --grid-size: 3;
+        --board-size: calc(var(--box-size) * var(--grid-size));
+        --superboard-size: calc(var(--board-size) * var(--grid-size));
+        --player-x-rgb: 245, 150, 100;
+        --player-o-rgb: 100, 170, 140;
+        --player-x-rgb-inverse: 26, 13, 6;
+        --player-o-rgb-inverse: 12, 31, 23;
+        --box-gap: 1px;
+        --board-gap: 4px;
+      }
+
+      .centerText {
+        text-align: center;
+      }
+
+      body {
+        /* Because I hate Times New Roman */
+        font-family: "Segoe UI", Verdana, Tahoma, sans-serif;
+        background-color: rgb(22, 25, 30);
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 8px;
+        transition: background 0.3s ease-out;
+      }
+      body.x {
+        background-image: linear-gradient(
+          to bottom,
+          rgb(var(--player-x-rgb-inverse)),
+          transparent /**/
+        );
+      }
+      body.o {
+        background-image: linear-gradient(
+          to top,
+          rgb(var(--player-o-rgb-inverse)),
+          transparent /**/
+        );
+      }
+
+      #cr,
+      #info {
+        color: #c5c5c5;
+        transition: color 0.3s ease-in-out;
+      }
+      body.x #cr,
+      body.x #info {
+        color: rgb(var(--player-x-rgb));
+      }
+      body.o #cr,
+      body.o #info {
+        color: rgb(var(--player-o-rgb));
+      }
+
+      .grid3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+      }
+
+      #app {
+        display: flex;
+        justify-content: center;
+      }
+
+      .box {
+        width: var(--box-size);
+        height: var(--box-size);
+
+        color: rgb(0, 2, 15);
+        background: rgb(var(--box-bg-rgb));
+        border-radius: 2px;
+
+        cursor: default;
+
+        display: flex;
+        align-items: center;
+        align-content: center;
+        justify-content: center;
+        justify-items: center;
+
+        transition: background-color 0.2s ease-in-out;
+      }
+      .box:hover {
+        background: rgb(40, 40, 40);
+      }
+      .box:active {
+        background: rgb(60, 60, 60);
+      }
+      .board.won .box {
+        pointer-events: none;
+      }
+      .board.won.x .box.highlight {
+        background-color: rgb(var(--player-x-rgb), 0.25);
+      }
+      .board.won.o .box.highlight {
+        background-color: rgb(var(--player-o-rgb), 0.25);
+      }
+
+      .box > i.fa-xmark {
+        color: rgb(var(--player-x-rgb));
+        font-size: 2.1em;
+      }
+      .box > i.fa-circle {
+        color: rgb(var(--player-o-rgb));
+        font-size: 1.9em;
+      }
+      .box.x,
+      .box.o {
+        background: rgb(var(--box-bg-rgb));
+      }
+
+      .board {
+        position: relative;
+        width: var(--board-size);
+        height: var(--board-size);
+
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .board.lock {
+        pointer-events: none;
+      }
+      .board > .boxes {
+        gap: var(--box-gap);
+      }
+      .board > .overlay {
+        --board-overlay-position: calc(var(--board-size) / 2 + var(--box-gap));
+        top: var(--board-overlay-position);
+        left: var(--board-overlay-position);
+      }
+      .board.won > .overlay,
+      .board.lock > .overlay {
+        height: var(--board-size);
+        width: var(--board-size);
+      }
+      .board.lock > .overlay {
+        background-color: rgba(60, 60, 60, 0.25);
+      }
+      .superboard.won .board {
+        opacity: 0.5;
+      }
+      .board.won.highlight {
+        opacity: 1;
+      }
+
+      .superboard {
+        position: relative;
+        width: var(--superboard-size);
+        height: var(--superboard-size);
+      }
+      .superboard > .boards {
+        gap: var(--board-gap);
+      }
+      .superboard > .overlay {
+        --superboard-overlay-position: calc(var(--superboard-size) / 2 + var(--board-gap));
+        top: var(--superboard-overlay-position);
+        left: var(--superboard-overlay-position);
+      }
+      .superboard.won > .overlay {
+        height: calc(var(--superboard-size) + var(--board-gap) * 2);
+        width: calc(var(--superboard-size) + var(--board-gap) * 2);
+      }
+
+      .overlay {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        border-radius: 10px;
+        z-index: 1;
+        height: 0;
+        width: 0;
+        transition: width 0.3s ease-out, height 0.3s ease-out, background-color 0.2s ease-in-out;
+      }
+      .won.x > .overlay {
+        background-color: rgba(var(--player-x-rgb), 0.25);
+      }
+      .won.o > .overlay {
+        background-color: rgba(var(--player-o-rgb), 0.25);
+      }
+    </style>
+    <!-- <link rel="stylesheet" href="./styles.css" /> -->
+  </head>
+  <body>
+    <div>
+      <div id="app"></div>
+      <p id="cr" class="centerText">©2023 Galacticai<br />GPL-3.0-or-later</p>
+    </div>
+    <br />
+    <a id="reset" class="waves-effect waves-light btn deep-orange darken-4">
+      <i class="material-icons left">rotate_right</i>Reset
+    </a>
+
+    <script>
+      /// extension
+
+      Node.prototype.appendChildren = function (children) {
+        children.forEach((child) => this.appendChild(child));
+        return this;
+      };
+
+      /// lib
+
+      const seedRepeat = (count, seedF, i = 0, arr = []) => {
+        if (count < 0 || i >= count) return arr;
+        arr.push(seedF(i));
+        return seedRepeat(count, seedF, i + 1, arr);
+      };
+
+      /// app
+      const body = document.querySelector("body");
+      const app = document.getElementById("app");
+
+      class Box extends HTMLDivElement {
+        game;
+        i;
+        player;
+        #icon;
+        constructor(game, i, onClick) {
+          super();
+
+          this.game = game;
+          this.i = i;
+          this.player = Game.player.none;
+          this.#icon = document.createElement("i");
+
+          this.classList.add("box");
+          this.appendChild(this.#icon);
+          this.addEventListener("click", (ev) => {
+            if (this.player > Game.player.none) return;
+            const board = this.parentElement.parentElement;
+            if (board.classList.contains("lock")) return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+
+            this.set(this.game.turn);
+
+            //! must run before switching turn
+            //! otherwise the body bg will be the enemy color
+            onClick();
+            this.game.turnSwitch();
+          });
+        }
+        set(player) {
+          if (this.player > Game.player.none) return;
+          this.player = player;
+          switch (this.player) {
+            case Game.player.x:
+              this.classList.add("x");
+              this.#icon.classList.add("fa-solid", "fa-xmark");
+              break;
+            case Game.player.o:
+              this.classList.add("o");
+              this.#icon.classList.add("fa-regular", "fa-circle");
+              break;
+          }
+          return this.player;
+        }
+      }
+
+      class Grid3 extends HTMLDivElement {
+        constructor() {
+          super();
+          this.classList.add("grid3");
+        }
+      }
+
+      class Board extends HTMLDivElement {
+        game;
+        i;
+        boxes;
+        constructor(game, i, onBoxClick) {
+          super();
+
+          this.game = game;
+          this.i = i;
+
+          this.boxes = seedRepeat(9, (i) => {
+            return new Box(game, i, () => {
+              if (this.classList.contains("lock")) return;
+              const winner = this.getWinner();
+              if (winner.player !== Game.player.none) {
+                this.classList.add("won");
+
+                winner.combo.forEach((i) => {
+                  this.boxes[i].classList.add("highlight");
+                });
+
+                if (winner.player === Game.player.x) {
+                  this.classList.add("x");
+                } else if (winner.player === Game.player.o) {
+                  this.classList.add("o");
+                }
+              }
+
+              onBoxClick(i);
+            });
+          });
+
+          const boxesGrid = new Grid3();
+          const overlay = document.createElement("div");
+
+          overlay.classList.add("overlay");
+          boxesGrid.classList.add("boxes");
+          this.classList.add("board");
+
+          boxesGrid.appendChildren(this.boxes);
+          this.appendChild(boxesGrid);
+          this.appendChild(overlay);
+        }
+
+        /**  returns {GameWinnerInfo} */
+        getWinner() {
+          const grid = this.boxes.map((box) => box.player);
+          return Game.gridWinner(grid);
+        }
+      }
+
+      class SuperBoard extends HTMLDivElement {
+        game;
+        boards;
+        constructor(game) {
+          super();
+
+          this.game = game;
+          this.classList.add("superboard");
+
+          this.boards = seedRepeat(9, (i) => {
+            return new Board(game, i, (iClick) => {
+              const winner = this.getWinner();
+              if (winner.player !== Game.player.none) {
+                for (const board of this.boards) {
+                  board.classList.add("lock");
+                  if (winner.combo.includes(board.i)) {
+                    board.classList.add("highlight");
+                  }
+                }
+                this.classList.add("won");
+                this.game.won();
+                if (winner.player === Game.player.x) {
+                  this.classList.add("x");
+                } else if (winner.player === Game.player.o) {
+                  this.classList.add("o");
+                }
+                return;
+              }
+              let lockCount = 0;
+              for (const board of this.boards) {
+                const lock = iClick !== board.i;
+                const fname = lock ? "add" : "remove";
+                board.classList[fname]("lock");
+
+                const locked = board.classList.contains("lock");
+                const won = board.classList.contains("won");
+                if (locked || won) lockCount++;
+              }
+              //? unlock all if all locked
+              if (lockCount >= 9) {
+                for (const board of this.boards) board.classList.remove("lock");
+              }
+            });
+          });
+
+          const boardsGrid = new Grid3();
+          boardsGrid.classList.add("boards");
+
+          const overlay = document.createElement("div");
+          overlay.classList.add("overlay");
+
+          boardsGrid.appendChildren(this.boards);
+          this.appendChild(boardsGrid);
+          this.appendChild(overlay);
+        }
+        /**  returns {GameWinnerInfo?} */
+        getWinner() {
+          const winners = this.boards.map((board) => board.getWinner().player);
+          return Game.gridWinner(winners);
+        }
+      }
+
+      class GameWinnerInfo {
+        player;
+        combo;
+        constructor(player, combo) {
+          this.player = player;
+          this.combo = combo;
+        }
+      }
+      class Game {
+        superBoard; //TODO: make
+        turn;
+        selectedBoard;
+        #won;
+        constructor(startingPlayer) {
+          this.superBoard = new SuperBoard(this);
+          this.turn = Game.player.x;
+          this.selectedBoard = -1;
+          this.#won = false;
+
+          app.innerHTML = "";
+          app.appendChild(this.superBoard);
+
+          if (startingPlayer === Game.player.o) return this.setO();
+          else return this.setX();
+        }
+        won() {
+          this.#won = true;
+        }
+        setX() {
+          this.turn = Game.player.x;
+          body.classList.remove("o");
+          body.classList.add("x");
+          return this.turn;
+        }
+        setO() {
+          this.turn = Game.player.o;
+          body.classList.remove("x");
+          body.classList.add("o");
+          return this.turn;
+        }
+        turnSwitch() {
+          if (this.#won) return this.turn;
+          const turn = this.turn;
+          if (turn === Game.player.x) return this.setO();
+          else return this.setX();
+        }
+
+        static player = { none: -1, x: 0, o: 1 };
+        static won = (player) => player > Game.player.none;
+        static #winningCombos = [
+          //? row
+          [0, 1, 2],
+          [3, 4, 5],
+          [6, 7, 8],
+          //? column
+          [0, 3, 6],
+          [1, 4, 7],
+          [2, 5, 8],
+          //? diagonal
+          [0, 4, 8],
+          [2, 4, 6],
+        ];
+        /**  returns {GameWinnerInfo} */
+        static gridWinner(grid1D) {
+          const none = Game.player.none;
+          for (const combo of Game.#winningCombos) {
+            const [a, b, c] = combo;
+            const player1 = grid1D[a];
+            const player2 = grid1D[b];
+            const player3 = grid1D[c];
+            if (player1 === none || player2 === none || player2 === none) {
+              continue;
+            } else if (player1 === player2 && player1 === player3) {
+              return new GameWinnerInfo(player1, combo);
+            }
+          }
+          return new GameWinnerInfo(none);
+        }
+      }
+
+      customElements.define("custom-box", Box, { extends: "div" });
+      customElements.define("custom-grid3", Grid3, { extends: "div" });
+      customElements.define("custom-board", Board, { extends: "div" });
+      customElements.define("custom-superboard", SuperBoard, { extends: "div" });
+
+      let game;
+      const reset = () => (game = new Game());
+      reset();
+      document.getElementById("reset").addEventListener("click", reset);
+    </script>
+
+    <script type="text/javascript" src="js/materialize.min.js"></script>
+  </body>
+</html>
